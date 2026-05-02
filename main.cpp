@@ -48,7 +48,7 @@ int main() {
     long double delta_time = t2 - t1;
     long double delta_idle = idle_t2 - idle_t1;
 
-    long double cpu_usage = 1000 *(1- (delta_idle/delta_time));
+    long double cpu_usage = 100 *(1- (delta_idle/delta_time));
 
     cout << cpu_usage << "%" << endl;
     
