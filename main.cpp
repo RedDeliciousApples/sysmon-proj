@@ -6,13 +6,9 @@ using namespace std::chrono; // nanoseconds, system_clock, seconds
 using namespace std;
 int main() {
     FILE *procstat = fopen("/proc/stat", "r");
-    int c = fgetc(procstat);
-    int p = fgetc(procstat);
-    int u = fgetc(procstat);
-    int space = fgetc(procstat); 
-    int space2 = fgetc(procstat);
-    int usermode = fgetc(procstat);
-    cout << usermode << endl;
+    char cpu[3];
+    scanf("%s", cpu);
+    printf("cpu is: %s", cpu);
     // for (int i =0; i < 20; i ++)
     // {
     //     cout << " test " << i << endl;
