@@ -7,7 +7,7 @@ using namespace std;
 int main() {
     FILE *procstat = fopen("/proc/stat", "r");
     char cpu[3];
-    scanf("%s", cpu);
+    fscanf(procstat, "%s", cpu);
     printf("cpu is: %s", cpu);
     // for (int i =0; i < 20; i ++)
     // {
