@@ -6,9 +6,17 @@ using namespace std::chrono; // nanoseconds, system_clock, seconds
 using namespace std;
 int main() {
     FILE *procstat = fopen("/proc/stat", "r");
-    char cpu[3];
+    char cpu[4];
+    long double usertime;
+    long double nicetime;
+    long double systime;
+    long double idletime;
     fscanf(procstat, "%s", cpu);
-    printf("cpu is: %s", cpu);
+    fscanf(procstat, "%Lf", &usertime);
+    fscanf(procstat, "%Lf", &nicetime);
+    fscanf(procstat, "%Lf", &systime);
+    fscanf(procstat, "%Lf", &idletime);
+    cout << "cpu is: " << cpu << " and user time is: " << usertime << " and nice time is: " << nicetime  << " sys time is" << systime << " idle is" << idletime << endl;
     // for (int i =0; i < 20; i ++)
     // {
     //     cout << " test " << i << endl;
