@@ -1,13 +1,15 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+using namespace std::this_thread; // sleep_for, sleep_until
+using namespace std::chrono; // nanoseconds, system_clock, seconds
+using namespace std;
 int main() {
-    using namespace std::this_thread; // sleep_for, sleep_until
-    using namespace std::chrono; // nanoseconds, system_clock, seconds
-    for (int i =0; i < 999; i ++){
-        printf("test %d", i);
+    for (int i =0; i < 20; i ++)
+    {
+        cout << " test " << i << endl;
         //sleep_for(nanoseconds(10));
-        sleep_until(system_clock::now() + seconds(1));
+        sleep_for(seconds(1));
     }
-
+    return 0;
 }
