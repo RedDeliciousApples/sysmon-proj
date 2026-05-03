@@ -8,7 +8,7 @@ using namespace std::this_thread;
 using namespace std::chrono;
 using namespace std;
 
-pair<long double, long double> get_snapshot(char *cpu, long double &usertime, long double &nicetime, long double &systime, long double &idletime)
+pair<long double, long double> get_snapshot(char *cpu, long double &usertime, long double &nicetime, long double &systime, long double &idletime, long double &iowait, long double &irq, long double &softirq, long double &steal)
 {
     FILE *procstat = fopen("/proc/stat", "r");
 
@@ -17,10 +17,14 @@ pair<long double, long double> get_snapshot(char *cpu, long double &usertime, lo
     fscanf(procstat, "%Lf", &nicetime);
     fscanf(procstat, "%Lf", &systime);
     fscanf(procstat, "%Lf", &idletime);
+    fscanf(procstat, "%Lf", &iowait);
+    fscanf(procstat, "%Lf", &irq);
+    fscanf(procstat, "%Lf", &softirq);
+    fscanf(procstat, "%Lf", &steal);
 
     fclose(procstat);
 
-    long double total = usertime + nicetime + systime + idletime;
+    long double total = usertime + nicetime + systime + idletime + iowait + irq + softirq + steal;
     return {idletime, total};
 }
 
@@ -30,15 +34,16 @@ int main() {
     long double nicetime;
     long double systime;
     long double idletime;
+    long double iowait, irq, softirq, steal;
 
-    pair<long double, long double> snapshot1 = get_snapshot(cpu, usertime, nicetime, systime, idletime);
+    pair<long double, long double> snapshot1 = get_snapshot(cpu, usertime, nicetime, systime, idletime, iowait, irq, softirq, steal);
 
     long double idle_t1 = snapshot1.first;
     long double t1 = snapshot1.second;
 
     sleep_for(seconds(1));
 
-    pair<long double, long double> snapshot2 = get_snapshot(cpu, usertime, nicetime, systime, idletime);
+    pair<long double, long double> snapshot2 = get_snapshot(cpu, usertime, nicetime, systime, idletime, iowait, irq, softirq, steal);
 
     long double idle_t2 = snapshot2.first;
     long double t2 = snapshot2.second;
