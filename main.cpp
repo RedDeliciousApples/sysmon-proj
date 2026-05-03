@@ -13,6 +13,7 @@ pair<long double, long double> get_snapshot(char *cpu, long double &usertime, lo
     FILE *procstat = fopen("/proc/stat", "r");
 
     fscanf(procstat, "%s", cpu);
+    
     fscanf(procstat, "%Lf", &usertime);
     fscanf(procstat, "%Lf", &nicetime);
     fscanf(procstat, "%Lf", &systime);
@@ -26,6 +27,24 @@ pair<long double, long double> get_snapshot(char *cpu, long double &usertime, lo
 
     long double total = usertime + nicetime + systime + idletime + iowait + irq + softirq + steal;
     return {idletime, total};
+}
+
+long double get_mem_usage(){
+
+    char memtotalstr[10];
+    char kb[3];
+    char freestr[9];
+    long double total;
+    long double memfree;
+    FILE *meminfo = fopen("/proc/meminfo", "r");
+
+    fscanf(meminfo, "MemTotal: %Lf kB\n", &total);
+    fscanf(meminfo, "MemFree: %Lf kB\n", &memfree);
+
+    fclose(meminfo);
+
+    return memfree;
+
 }
 
 int main() {
@@ -54,6 +73,8 @@ int main() {
     long double cpu_usage = 100 * (1 - (delta_idle / delta_time));
 
     cout << cpu_usage << "%" << endl;
+
+    cout << get_mem_usage() << endl;
 
     return 0;
 }
