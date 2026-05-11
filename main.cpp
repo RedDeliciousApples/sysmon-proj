@@ -7,21 +7,17 @@
 #include <iostream>
 #include "json.hpp"
 
-using json = nlohmann::json;
-
-int main() {
-    json j;
-    j["cpu"] = 12.4;
-    j["mem"] = 58.2;
-
-    std::cout << j.dump() << std::endl;
-}
 
 using json = nlohmann::json;
 
 using namespace std::this_thread;
 using namespace std::chrono;
 using namespace std;
+
+long double round_to(long double value, int decimals) {
+    long double factor = pow(10, decimals);
+    return round(value * factor) / factor;
+}
 
 pair<long double, long double> get_snapshot()
 {
@@ -57,45 +53,53 @@ long double get_mem_usage(){
     char freestr[9];
     long double total;
     long double memfree;
+    long double available;
     FILE *meminfo = fopen("/proc/meminfo", "r");
 
     fscanf(meminfo, "MemTotal: %Lf kB\n", &total);
     fscanf(meminfo, "MemFree: %Lf kB\n", &memfree);
+    fscanf(meminfo, "MemAvailable: %Lf kB\n", &available);
 
     fclose(meminfo);
 
-    return memfree;
+    return round_to(100.0L * (1.0L - available / total), 2);
 
 }
 
-// int main() {
-//     char cpu[4];
-//     long double usertime;
-//     long double nicetime;
-//     long double systime;
-//     long double idletime;
-//     long double iowait, irq, softirq, steal;
+int main() {
+    char cpu[4];
+    long double usertime;
+    long double nicetime;
+    long double systime;
+    long double idletime;
+    long double iowait, irq, softirq, steal;
 
-//     pair<long double, long double> snapshot1 = get_snapshot(cpu, usertime, nicetime, systime, idletime, iowait, irq, softirq, steal);
+    pair<long double, long double> snapshot1 = get_snapshot();
 
-//     long double idle_t1 = snapshot1.first;
-//     long double t1 = snapshot1.second;
+    long double idle_t1 = snapshot1.first;
+    long double t1 = snapshot1.second;
 
-//     sleep_for(seconds(1));
+    sleep_for(seconds(1));
 
-//     pair<long double, long double> snapshot2 = get_snapshot(cpu, usertime, nicetime, systime, idletime, iowait, irq, softirq, steal);
+    pair<long double, long double> snapshot2 = get_snapshot();
 
-//     long double idle_t2 = snapshot2.first;
-//     long double t2 = snapshot2.second;
+    long double idle_t2 = snapshot2.first;
+    long double t2 = snapshot2.second;
 
-//     long double delta_time = t2 - t1;
-//     long double delta_idle = idle_t2 - idle_t1;
+    long double delta_time = t2 - t1;
+    long double delta_idle = idle_t2 - idle_t1;
 
-//     long double cpu_usage = 100 * (1 - (delta_idle / delta_time));
+    long double cpu_usage = round_to(100 * (1 - (delta_idle / delta_time)), 2);
 
-//     cout << cpu_usage << "%" << endl;
+    cout << cpu_usage << "%" << endl;
 
-//     cout << get_mem_usage() << endl;
+    long double mem_usage = get_mem_usage();
 
-//     return 0;
-// }
+    json j;
+    j["cpu"] = cpu_usage;
+    j["mem"] = mem_usage;
+
+    std::cout << j.dump() << std::endl;
+
+    return 0;
+}
