@@ -23,8 +23,14 @@ using namespace std::this_thread;
 using namespace std::chrono;
 using namespace std;
 
-pair<long double, long double> get_snapshot(char *cpu, long double &usertime, long double &nicetime, long double &systime, long double &idletime, long double &iowait, long double &irq, long double &softirq, long double &steal)
+pair<long double, long double> get_snapshot()
 {
+    char cpu[4];
+    long double usertime;
+    long double nicetime;
+    long double systime;
+    long double idletime;
+    long double iowait, irq, softirq, steal;
     FILE *procstat = fopen("/proc/stat", "r");
 
     fscanf(procstat, "%s", cpu);
