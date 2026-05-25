@@ -16,13 +16,14 @@ using namespace std::chrono;
 //maybe unsafe to do this?
 using namespace std;
 
+//static is just like "private" in Java
 
-long double round_to(long double value, int decimals) {
+static long double round_to(long double value, int decimals) {
     long double factor = pow(10, decimals);
     return round(value * factor) / factor;
 }
-
-pair<long double, long double> get_cpu_snapshot()
+//make a get_cpu_usage func that calls this private func
+static pair<long double, long double> get_cpu_snapshot()
 {
     char cpu[4];
     long double usertime;
