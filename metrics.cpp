@@ -34,7 +34,7 @@ static pair<long double, long double> get_cpu_snapshot()
     FILE *procstat = fopen("/proc/stat", "r");
 
     //necessary? look into this
-    fscanf(procstat, "%s", cpu);
+    fscanf(procstat, "%3s", cpu);
     
     fscanf(procstat, "%Lf", &usertime);
     fscanf(procstat, "%Lf", &nicetime);
