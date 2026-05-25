@@ -44,7 +44,7 @@ pair<long double, long double> get_snapshot()
     fclose(procstat);
 
     long double total = usertime + nicetime + systime + idletime + iowait + irq + softirq + steal;
-    return {idletime, total};
+    return {idletime + iowait, total};
 }
 
 long double get_mem_usage(){
