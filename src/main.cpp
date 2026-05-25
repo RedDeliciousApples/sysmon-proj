@@ -1,29 +1,20 @@
-#include <chrono>
-#include <thread>
 #include <iostream>
-#include <utility>
-#include <cstdio>
-#include <cmath>
-
-#include <iostream>
-#include "json.hpp"
+#include "metrics.hpp"
 
 
-using json = nlohmann::json;
-
-using namespace std::this_thread;
-using namespace std::chrono;
-using namespace std;
 
 
 int main() {
+        ///////////////////////////
+        //QUICK TESTS
+        ///////////////////////////
 
+        std::cout << "CPU usage: " << get_cpu_usage() << "%\n";
+        std::cout << "Memory usage: " << get_mem_usage() << "%\n";
 
-    
-
-    cout << cpu_usage << "%" << endl;
-
-    long double mem_usage = get_mem_usage();
+        std::cout << "JSON:\n";
+        //add .dump(4) for prettier json maybe?
+        std::cout << get_metrics_json() << std::endl;
 
 
 
