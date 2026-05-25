@@ -33,6 +33,12 @@ static pair<long double, long double> get_cpu_snapshot()
     long double iowait, irq, softirq, steal;
     FILE *procstat = fopen("/proc/stat", "r");
 
+    if (procstat == nullptr) {
+        // handle failure someday...
+        //for now just error
+        throw std::runtime_error("ERROR! HELP! Failed to open /proc/stat");
+    }
+
     //necessary? look into this
     fscanf(procstat, "%3s", cpu);
     
@@ -59,6 +65,12 @@ long double get_mem_usage(){
     long double available;
     //need to check for failure
     FILE *meminfo = fopen("/proc/meminfo", "r");
+
+    if (meminfo == nullptr) {
+    // handle failure someday...
+    //for now just error
+        throw std::runtime_error("ERROR! HELP! Failed to open /proc/meminfo");
+    }
 
     fscanf(meminfo, "MemTotal: %Lf kB\n", &total);
     fscanf(meminfo, "MemFree: %Lf kB\n", &memfree);
