@@ -22,7 +22,7 @@ long double round_to(long double value, int decimals) {
     return round(value * factor) / factor;
 }
 
-pair<long double, long double> get_cpu_usage()
+pair<long double, long double> get_cpu_snapshot()
 {
     char cpu[4];
     long double usertime;
@@ -72,7 +72,7 @@ long double get_mem_usage(){
 nlohmann::json get_metrics_json() {
     nlohmann::json j;
 
-    j["cpu"] = get_cpu_usage();
+    j["cpu"] = get_cpu_snapshot();
     j["mem"] = get_mem_usage();
 
     return j;
