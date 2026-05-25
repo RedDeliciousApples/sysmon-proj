@@ -49,9 +49,7 @@ pair<long double, long double> get_snapshot()
 
 long double get_mem_usage(){
 
-    char memtotalstr[10];
-    char kb[3];
-    char freestr[9];
+
     long double total;
     long double memfree;
     long double available;
@@ -68,12 +66,7 @@ long double get_mem_usage(){
 }
 
 int main() {
-    char cpu[4];
-    long double usertime;
-    long double nicetime;
-    long double systime;
-    long double idletime;
-    long double iowait, irq, softirq, steal;
+
 
     pair<long double, long double> snapshot1 = get_snapshot();
 
