@@ -15,7 +15,7 @@ using json = nlohmann::json;
 using namespace std::this_thread;
 using namespace std::chrono;
 //maybe unsafe to do this?
-using namespace std;
+//using namespace std;
 
 //static is just like "private" in Java
 
@@ -24,7 +24,7 @@ static long double round_to(long double value, int decimals) {
     return round(value * factor) / factor;
 }
 //make a get_cpu_usage func that calls this private func
-static pair<long double, long double> get_cpu_snapshot()
+static std::pair<long double, long double> get_cpu_snapshot()
 {
     char cpu[4];
     long double usertime;
@@ -84,14 +84,14 @@ long double get_mem_usage(){
 }
 
 long double get_cpu_usage(){
-    pair<long double, long double> snapshot1 = get_cpu_snapshot();
+    std::pair<long double, long double> snapshot1 = get_cpu_snapshot();
 
     long double idle_t1 = snapshot1.first;
     long double t1 = snapshot1.second;
 
     sleep_for(seconds(1));
 
-    pair<long double, long double> snapshot2 = get_cpu_snapshot();
+    std::pair<long double, long double> snapshot2 = get_cpu_snapshot();
 
     long double idle_t2 = snapshot2.first;
     long double t2 = snapshot2.second;
