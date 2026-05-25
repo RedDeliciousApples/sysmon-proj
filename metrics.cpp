@@ -70,6 +70,26 @@ long double get_mem_usage(){
 
 }
 
+long double get_cpu_usage(){
+    pair<long double, long double> snapshot1 = get_cpu_snapshot();
+
+    long double idle_t1 = snapshot1.first;
+    long double t1 = snapshot1.second;
+
+    sleep_for(seconds(1));
+
+    pair<long double, long double> snapshot2 = get_cpu_snapshot();
+
+    long double idle_t2 = snapshot2.first;
+    long double t2 = snapshot2.second;
+
+    long double delta_time = t2 - t1;
+    long double delta_idle = idle_t2 - idle_t1;
+
+    long double cpu_usage = round_to(100 * (1 - (delta_idle / delta_time)), 2);
+    return cpu_usage;
+}
+
 nlohmann::json get_metrics_json() {
     nlohmann::json j;
 
