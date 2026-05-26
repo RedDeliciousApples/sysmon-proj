@@ -32,6 +32,10 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # build/src/main.cpp.d
 DEPS := $(OBJS:.o=.d)
 
+
+CXX := g++
+CXXFLAGS := -std=c++17 -Wall -Wextra
+
 # Final linking step to combine into one executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	mkdir -p $(dir $@)
