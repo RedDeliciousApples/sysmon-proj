@@ -34,6 +34,7 @@ DEPS := $(OBJS:.o=.d)
 
 # Final linking step to combine into one executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
+	mkdir -p $(dir $@)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 # Rule for compiling any .cpp file into a .o object file
