@@ -1,3 +1,4 @@
+# Partially AI generated because who has time for this? Not me
 # Name of the final executable that will be created
 TARGET_EXEC := final_program
 
