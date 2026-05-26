@@ -1,0 +1,12 @@
+# Build output
+build/
+main
+a.out
+
+# Object and dependency files
+*.o
+*.d
+
+
+# macOS
+.DS_Store
