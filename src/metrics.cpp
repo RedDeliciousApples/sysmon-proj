@@ -4,6 +4,7 @@
 #include <utility>
 #include <cstdio>
 #include <cmath>
+#include <stdexcept>
 
 #include <iostream>
 #include "json.hpp"
@@ -13,14 +14,17 @@ using json = nlohmann::json;
 
 using namespace std::this_thread;
 using namespace std::chrono;
-using namespace std;
+//maybe unsafe to do this?
+//using namespace std;
 
-long double round_to(long double value, int decimals) {
+//static is just like "private" in Java
+
+static long double round_to(long double value, int decimals) {
     long double factor = pow(10, decimals);
     return round(value * factor) / factor;
 }
-
-pair<long double, long double> get_snapshot()
+//make a get_cpu_usage func that calls this private func
+static std::pair<long double, long double> get_cpu_snapshot()
 {
     char cpu[4];
     long double usertime;
@@ -30,7 +34,14 @@ pair<long double, long double> get_snapshot()
     long double iowait, irq, softirq, steal;
     FILE *procstat = fopen("/proc/stat", "r");
 
-    fscanf(procstat, "%s", cpu);
+    if (procstat == nullptr) {
+        // handle failure someday...
+        //for now just error
+        throw std::runtime_error("ERROR! HELP! Failed to open /proc/stat");
+    }
+
+    //necessary? look into this
+    fscanf(procstat, "%3s", cpu);
     
     fscanf(procstat, "%Lf", &usertime);
     fscanf(procstat, "%Lf", &nicetime);
@@ -53,7 +64,14 @@ long double get_mem_usage(){
     long double total;
     long double memfree;
     long double available;
+    //need to check for failure
     FILE *meminfo = fopen("/proc/meminfo", "r");
+
+    if (meminfo == nullptr) {
+    // handle failure someday...
+    //for now just error
+        throw std::runtime_error("ERROR! HELP! Failed to open /proc/meminfo");
+    }
 
     fscanf(meminfo, "MemTotal: %Lf kB\n", &total);
     fscanf(meminfo, "MemFree: %Lf kB\n", &memfree);
@@ -65,17 +83,15 @@ long double get_mem_usage(){
 
 }
 
-int main() {
-
-
-    pair<long double, long double> snapshot1 = get_snapshot();
+long double get_cpu_usage(){
+    std::pair<long double, long double> snapshot1 = get_cpu_snapshot();
 
     long double idle_t1 = snapshot1.first;
     long double t1 = snapshot1.second;
 
     sleep_for(seconds(1));
 
-    pair<long double, long double> snapshot2 = get_snapshot();
+    std::pair<long double, long double> snapshot2 = get_cpu_snapshot();
 
     long double idle_t2 = snapshot2.first;
     long double t2 = snapshot2.second;
@@ -84,16 +100,14 @@ int main() {
     long double delta_idle = idle_t2 - idle_t1;
 
     long double cpu_usage = round_to(100 * (1 - (delta_idle / delta_time)), 2);
+    return cpu_usage;
+}
 
-    cout << cpu_usage << "%" << endl;
+nlohmann::json get_metrics_json() {
+    nlohmann::json j;
 
-    long double mem_usage = get_mem_usage();
+    j["cpu"] = get_cpu_usage();
+    j["mem"] = get_mem_usage();
 
-    json j;
-    j["cpu"] = cpu_usage;
-    j["mem"] = mem_usage;
-
-    std::cout << j.dump() << std::endl;
-
-    return 0;
+    return j;
 }

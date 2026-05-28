@@ -22,6 +22,6 @@ Linux only because it uses /proc.
 
 Linux environment:
 ```bash
-g++ main.cpp -o monitor
+g++ -std=c++17 -Iinclude -Iexternal src/main.cpp src/metrics.cpp -o main
 ```
 ```I Would Rather Be Playing Persona 3 Reload```
