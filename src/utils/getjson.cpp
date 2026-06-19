@@ -1,4 +1,9 @@
-nlohmann::json get_metrics_json() {
+#include "json.hpp"
+#include "../collectors/cpu.h"
+#include "../collectors/mem.h"
+
+nlohmann::json get_metrics_json()
+{
     nlohmann::json j;
 
     j["cpu"] = get_cpu_usage();
