@@ -99,6 +99,10 @@ long double get_cpu_usage(){
     long double delta_time = t2 - t1;
     long double delta_idle = idle_t2 - idle_t1;
 
+    if (delta_time <= 0) {
+        throw std::runtime_error("Invalid CPU snapshot: total CPU time did not increase");
+    }
+    
     long double cpu_usage = round_to(100 * (1 - (delta_idle / delta_time)), 2);
     return cpu_usage;
 }
