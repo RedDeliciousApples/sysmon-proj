@@ -1,6 +1,6 @@
 # Partially AI generated because who has time for this? Not me
 # Name of the final executable that will be created
-TARGET_EXEC := final_program
+TARGET_EXEC := sysmon
 
 # Folder where compiled object files and executable will go
 BUILD_DIR := ./build
@@ -58,8 +58,11 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 
 # Remove all generated build files
 clean:
-	rm -r $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
+# make run to run it
+run: $(BUILD_DIR)/$(TARGET_EXEC)
+	$(BUILD_DIR)/$(TARGET_EXEC)
 # Include automatically generated dependency files
 #
 # This allows Make to rebuild files when included headers change.

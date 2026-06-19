@@ -58,30 +58,7 @@ static std::pair<long double, long double> get_cpu_snapshot()
     return {idletime + iowait, total};
 }
 
-long double get_mem_usage(){
 
-
-    long double total;
-    long double memfree;
-    long double available;
-    //need to check for failure
-    FILE *meminfo = fopen("/proc/meminfo", "r");
-
-    if (meminfo == nullptr) {
-    // handle failure someday...
-    //for now just error
-        throw std::runtime_error("ERROR! HELP! Failed to open /proc/meminfo");
-    }
-
-    fscanf(meminfo, "MemTotal: %Lf kB\n", &total);
-    fscanf(meminfo, "MemFree: %Lf kB\n", &memfree);
-    fscanf(meminfo, "MemAvailable: %Lf kB\n", &available);
-
-    fclose(meminfo);
-
-    return round_to(100.0L * (1.0L - available / total), 2);
-
-}
 
 long double get_cpu_usage(){
     std::pair<long double, long double> snapshot1 = get_cpu_snapshot();
@@ -99,6 +76,10 @@ long double get_cpu_usage(){
     long double delta_time = t2 - t1;
     long double delta_idle = idle_t2 - idle_t1;
 
+    if (delta_time <= 0) {
+        throw std::runtime_error("Invalid CPU snapshot: total CPU time did not increase");
+    }
+    
     long double cpu_usage = round_to(100 * (1 - (delta_idle / delta_time)), 2);
     return cpu_usage;
 }
