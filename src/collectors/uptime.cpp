@@ -23,3 +23,15 @@ long double get_uptime()
     return uptime;
 }
 
+long double time_awake(){
+    long double time;
+
+    FILE* uptime_stat = fopen("/proc/uptime", "r");
+
+
+    fscanf(uptime_stat, "%Lf", &time);
+
+    
+    return time;
+}
+
