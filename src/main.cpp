@@ -3,6 +3,7 @@
 #include "collectors/cpu.h"
 #include "collectors/mem.h"
 #include "collectors/uptime.h"
+#include "collectors/loadavg.h"
 #include "utils/getjson.h"
 #include "json.hpp"
 
