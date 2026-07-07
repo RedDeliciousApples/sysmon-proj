@@ -43,6 +43,18 @@ static bool is_skip_filesystem(const std::string& fs_type) {
     return false; 
 }
 
+static bool is_skip_mount_point(const std::string& mount_point)
+{
+    return mount_point.rfind("/proc", 0) == 0 ||
+           mount_point.rfind("/sys", 0) == 0 ||
+           mount_point.rfind("/dev", 0) == 0 ||
+           mount_point.rfind("/run", 0) == 0 ||
+           mount_point.rfind("/snap", 0) == 0 ||
+           mount_point.rfind("/usr/lib/wsl", 0) == 0 ||
+           mount_point.rfind("/mnt/wslg", 0) == 0 ||
+           mount_point == "/init";
+}
+
 std::vector<FilesystemUsage> get_filesystem_usage() {
     std::vector<FilesystemUsage> usage_list;
     
@@ -67,8 +79,7 @@ std::vector<FilesystemUsage> get_filesystem_usage() {
             continue; // Not enough fields in line
         }
 
-        // Filter: Skip weird virtual filesystems
-        if (is_skip_filesystem(fs_type)) {
+        if (is_skip_filesystem(fs_type) || is_skip_mount_point(mount_point)) {
             continue;
         }
 
