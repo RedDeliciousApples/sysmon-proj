@@ -8,8 +8,24 @@
 #include "../utils/math_utils.h"
 
 static const std::vector<std::string> SKIP_FILESYSTEMS = {
-    "proc", "sysfs", "devtmpfs", "tmpfs", "devpts", 
-    "cgroup", "cgroup2", "overlay", "squashfs"
+    "proc",
+    "sysfs",
+    "devtmpfs",
+    "tmpfs",
+    "devpts",
+    "cgroup",
+    "cgroup2",
+    "overlay",
+    "squashfs",
+    "binfmt_misc",
+    "hugetlbfs",
+    "mqueue",
+    "debugfs",
+    "tracefs",
+    "fusectl",
+    "configfs",
+    "fuse.snapfuse",
+    "rootfs"
 };
 
 //unused for now
