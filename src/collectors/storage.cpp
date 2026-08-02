@@ -50,6 +50,7 @@ static bool is_skip_mount_point(const std::string& mount_point)
            mount_point.rfind("/dev", 0) == 0 ||
            mount_point.rfind("/run", 0) == 0 ||
            mount_point.rfind("/snap", 0) == 0 ||
+           //exclude Windows Subsystem for Linux mount points
            mount_point.rfind("/usr/lib/wsl", 0) == 0 ||
            mount_point.rfind("/mnt/wslg", 0) == 0 ||
            mount_point == "/init";
@@ -58,7 +59,7 @@ static bool is_skip_mount_point(const std::string& mount_point)
 std::vector<FilesystemUsage> get_filesystem_usage() {
     std::vector<FilesystemUsage> usage_list;
     
-    // Open /proc/mounts for reading
+
     std::ifstream mount_file("/proc/mounts");
     if (!mount_file.is_open()) {
         return usage_list;
@@ -66,7 +67,7 @@ std::vector<FilesystemUsage> get_filesystem_usage() {
 
     std::string line;
     while (std::getline(mount_file, line)) {
-        // skip empty lines
+
         if (line.empty()) continue;
 
 
@@ -83,13 +84,13 @@ std::vector<FilesystemUsage> get_filesystem_usage() {
             continue;
         }
 
-        // Call statvfs
+   
         struct statvfs stats{};
         if (statvfs(mount_point.c_str(), &stats) != 0) {
             continue; // statvfs failed, skip this mount
         }
 
-        // Calculate bytes
+
         unsigned long long f_blocks = static_cast<unsigned long long>(stats.f_blocks);
         unsigned long long f_frsize = static_cast<unsigned long long>(stats.f_frsize);
         unsigned long long f_bfree = static_cast<unsigned long long>(stats.f_bfree);
