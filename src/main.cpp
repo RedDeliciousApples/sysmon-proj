@@ -8,17 +8,25 @@
 #include "collectors/loadavg.h"
 #include "utils/getjson.h"
 #include "json.hpp"
+#include "server/http_server.h"
 
 int main(int argc, char** argv)
 {
     bool watching = false;
-    if (argc > 1)
-    {
-        if(strcmp(argv[1], "--watch") == 0)
-            watching = true;
+    bool serving = false;
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--watch") == 0) watching = true;
+        if (strcmp(argv[i], "--serve") == 0) serving = true;
     }
 
-    if(watching)
+    if (serving) {
+        // start HTTP server on default port 8080
+        run_server(8080);
+        return 0;
+    }
+
+    if (watching)
     {
         while(true)
         {
