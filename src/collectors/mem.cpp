@@ -12,15 +12,13 @@
 long double get_mem_usage(){
 
 
-    long double total;
-    long double memfree;
-    long double available;
-    //need to check for failure
+    long double total = 0.0L;
+    long double memfree = 0.0L;
+    long double available = 0.0L;
+
     FILE *meminfo = fopen("/proc/meminfo", "r");
 
     if (meminfo == nullptr) {
-    // handle failure someday...
-    //for now just error
         throw std::runtime_error("ERROR! HELP! Failed to open /proc/meminfo");
     }
 
@@ -29,7 +27,9 @@ long double get_mem_usage(){
     fscanf(meminfo, "MemAvailable: %Lf kB\n", &available);
 
     fclose(meminfo);
-
+    if (total <= 0.0L || available < 0.0L) {
+        throw std::runtime_error("ERROR! HELP! Total memory or available memory is 0 or negative");
+    }
     return round_to(100.0L * (1.0L - available / total), 2);
 
 }
