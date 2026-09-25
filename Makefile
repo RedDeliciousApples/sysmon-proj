@@ -12,7 +12,7 @@ SRC_DIRS := ./src
 # -Iinclude  -> look in include/ for header files
 # -Iexternal -> look in external/ for header files
 # -MMD -MP   -> automatically generate dependency (.d) files
-CPPFLAGS := -Iinclude -Iexternal -MMD -MP
+CPPFLAGS := -Iinclude -Iexternal -MMD -MP 
 
 # Find all .cpp source files inside src/
 SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
@@ -35,7 +35,7 @@ DEPS := $(OBJS:.o=.d)
 
 
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra
+CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow
 
 # Final linking step to combine into one executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
