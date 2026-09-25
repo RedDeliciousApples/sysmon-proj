@@ -5,7 +5,7 @@
 #include <iostream>
 #include <thread>
 
-int main()
+int sampler_test()
 {
     using namespace std::chrono_literals;
 
