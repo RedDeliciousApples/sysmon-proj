@@ -17,7 +17,9 @@ LoadAverage get_load_avg(){
     fscanf(load, "%Lf", &mystruct.five_min);
 
     fscanf(load, "%Lf", &mystruct.fifteen_min);
-
+    if (mystruct.one_min < 0.0L || mystruct.five_min < 0.0L || mystruct.fifteen_min <0.0L) {
+        throw std::runtime_error("ERROR! HELP! One or more load avreages are negative");
+    }
     fclose(load);
     return mystruct;
 }
