@@ -33,9 +33,29 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # build/src/main.cpp.d
 DEPS := $(OBJS:.o=.d)
 
+# Cross-compilation support:
+#   make CROSS_COMPILE=aarch64-linux-gnu-
+# uses aarch64-linux-gnu-g++ automatically.
+# (Buildroot also passes CXX=... on the command line, which overrides this.)
+CROSS_COMPILE ?=
+CXX := $(CROSS_COMPILE)g++
 
-CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra
+# -pthread is required for std::thread (MetricsSampler) to link correctly,
+# especially on non-glibc targets like musl/uClibc
+CXXFLAGS := -std=c++17 -Wall -Wextra -pthread
+
+# Linker flags.
+# STATIC=1 produces a fully static binary, handy for dropping onto boards
+# that don't have matching shared libraries installed:
+#   make STATIC=1 CROSS_COMPILE=aarch64-linux-gnu-
+LDFLAGS := -pthread
+ifeq ($(STATIC),1)
+LDFLAGS += -static
+endif
+
+# Default target
+.PHONY: all
+all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 # Final linking step to combine into one executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
@@ -47,11 +67,16 @@ $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 # $< = input file
 # $@ = output file
 $(BUILD_DIR)/%.cpp.o: %.cpp
-	
 	mkdir -p $(dir $@)
-
-	
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Install to a staging directory, e.g.:
+#   make install DESTDIR=/path/to/staging PREFIX=/usr
+# This is what a Buildroot .mk file will call.
+PREFIX ?= /usr
+.PHONY: install
+install: $(BUILD_DIR)/$(TARGET_EXEC)
+	install -D -m 0755 $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)$(PREFIX)/bin/$(TARGET_EXEC)
 
 # "clean" is not a real file target
 .PHONY: clean
@@ -60,9 +85,11 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 clean:
 	rm -rf $(BUILD_DIR)
 
-# make run to run it
+# make run to run it (host build only)
+.PHONY: run
 run: $(BUILD_DIR)/$(TARGET_EXEC)
 	$(BUILD_DIR)/$(TARGET_EXEC)
+
 # Include automatically generated dependency files
 #
 # This allows Make to rebuild files when included headers change.
