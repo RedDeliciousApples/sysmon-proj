@@ -4,21 +4,9 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "loadavg.h"
+#include "storage.h"
 
-struct LoadAverage {
-    double one_min;
-    double five_min;
-    double fifteen_min;
-};
-
-struct FilesystemUsage {
-    std::string mount_point;
-    std::string fs_type;
-    std::uint64_t total_bytes;
-    std::uint64_t free_bytes;
-    std::uint64_t available_bytes;
-    double used_percent;
-};
 
 struct MetricsSnapshot {
 
