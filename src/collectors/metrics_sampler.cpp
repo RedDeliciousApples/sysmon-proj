@@ -12,6 +12,7 @@
 #include <optional>
 #include <iostream>
 #include <stdexcept>
+
 //constructor
 MetricsSampler::MetricsSampler(std::chrono::seconds interval)
     : interval_(interval)
@@ -64,28 +65,39 @@ void MetricsSampler::start()
 
 void MetricsSampler::run()
 {
-   
     while (!stopping_)
     {
-        try{
+        try {
             MetricsSnapshot snapshot = collect_once();
 
             {
                 std::lock_guard<std::mutex> lock(snapshot_mutex_);
                 latest_snapshot_ = snapshot;
             }
-        } catch (const std::exception& e) {
-            // Handle the exception (e.g., log it)
-            std::cerr << "Error collecting metrics: " << e.what() << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error collecting metrics: "
+                      << e.what() << std::endl;
         }
 
-        std::this_thread::sleep_for(interval_);
+        std::unique_lock<std::mutex> lock(stop_mutex_);
+
+        stop_cv_.wait_for(
+            lock,
+            interval_,
+            [this] {
+                return stopping_.load();
+            }
+        );
     }
 }
 
 void MetricsSampler::stop()
 {
     stopping_ = true;
+
+    stop_cv_.notify_all();
+
     if (worker_.joinable()) {
         worker_.join();
     }

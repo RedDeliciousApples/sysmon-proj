@@ -7,6 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include <optional>
+#include <condition_variable>
 
 class MetricsSampler {
 public:
@@ -28,6 +29,9 @@ private:
 
     mutable std::mutex snapshot_mutex_;
     std::optional<MetricsSnapshot> latest_snapshot_;
+
+    std::condition_variable stop_cv_;
+    std::mutex stop_mutex_;
 
     std::optional<CpuCounters> previous_cpu_;
     std::uint64_t next_sequence_ = 1;
