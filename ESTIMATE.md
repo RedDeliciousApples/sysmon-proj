@@ -1,119 +1,132 @@
-# sysmon — Code-Only Estimate (pre-Buildroot)
+# sysmon — revised code-only estimate (post review)
 
-Scope: everything needed to make the codebase "near perfect" before starting
-Buildroot work. Excludes Buildroot/QEMU/bring-up (estimated separately at
-~13–27h, unchanged).
+Scope: everything needed to make this codebase "near perfect" before Buildroot
+work starts. This revised estimate reflects the current repo state, not the
+idealized version described in the original draft.
 
 ## 1. Files reviewed
 
-Trusted contents in chat: `Makefile`, `.gitignore`, `README.md`,
-`include/metrics.hpp`, `src/main.cpp`, `src/utils/getjson.{h,cpp}`,
-`src/utils/math_utils.{h,cpp}`, `src/collectors/{cpu,mem,loadavg,uptime,storage}.{h,cpp}`,
-`src/collectors/metrics_sampler.{h,cpp}`, `src/collectors/metrics_snapshot.h`,
-`src/server/http_server.{h,cpp}`, `frontend/{index.html,app.js,styles.css}`.
+Reviewed in the workspace:
+- `Makefile`
+- `README.md`
+- `src/main.cpp`
+- `src/utils/getjson.{h,cpp}`
+- `src/utils/math_utils.{h,cpp}`
+- `src/collectors/{cpu,mem,loadavg,uptime,storage}.{h,cpp}`
+- `src/collectors/metrics_sampler.{h,cpp}`
+- `src/collectors/metrics_snapshot.h`
+- `src/collectors/sampler_test.cpp`
+- `src/server/http_server.{h,cpp}`
+- `frontend/{index.html,app.js,styles.css}`
 
-Not reviewed / N/A:
-- `external/json.hpp` — vendored third-party; version not yet provided (not blocking)
-- tests — none exist in the repo
+Notable current findings:
+- The project does not build cleanly as-is: `make clean && make -j4` fails due a
+  duplicate `main` from `src/collectors/sampler_test.cpp`.
+- The original estimate assumed the repo had no tests; this repo does contain a
+  test-style file, but it is not wired into the build correctly.
+- Several `/proc` parser paths are still unguarded and currently rely on implicit
+  success from `fscanf`.
 
-## 2. Confirmed bugs (P0 — fix first)
+## 2. Confirmed issues (revised P0 — fix first)
 
-| #  | File                        | Bug                                                                                                                                 | Est  |
-|----|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------|------|
-| B1 | `src/collectors/mem.cpp`    | `total`/`available` uninitialized; if `fscanf` fails, `round_to` computes on garbage → UB/NaN output                                 | 0.5h |
-| B2 | `src/collectors/uptime.cpp` | `get_uptime()`: no `fopen` null check (UB crash), no `fclose` (leak), meaningless math, and it is dead code (nothing calls it)        | 0.5h |
-| B3 | `src/main.cpp`              | `strcmp` used without `#include <cstring>` — compiles by luck via transitive includes; breaks on other toolchains/libc               | 0.1h |
-| B4 | `src/server/http_server.cpp`| `send()` without `MSG_NOSIGNAL`: client disconnect mid-response raises SIGPIPE and kills the server                                  | 0.5h |
-| B5 | `frontend/styles.css`       | Selector is `.body` (class) but `<body>` has no class → font rule never applies                                                      | 0.1h |
+| #  | File                       | Issue                                                                                 | Est  |
+|----|----------------------------|---------------------------------------------------------------------------------------|------|
+| B0 | `src/collectors/sampler_test.cpp` | Separate `main()` causes duplicate-definition link failure with the app binary | 0.25h |
+| B1 | `src/collectors/mem.cpp` | `total`/`available` are effectively uninitialized on parse failure; UB/NaN risk | 0.5h |
+| B2 | `src/collectors/uptime.cpp` | `get_uptime()` is dead code, has no `fopen` check, no `fclose`, and bad math | 0.5h |
+| B3 | `src/main.cpp` | `strcmp` without `<cstring>`; relies on incidental includes | 0.1h |
+| B4 | `src/server/http_server.cpp` | `send()` lacks `MSG_NOSIGNAL` handling; disconnects can kill the server | 0.5h |
+| B5 | `frontend/styles.css` | `.body` selector mismatches `<body>` and never applies | 0.1h |
+| B6 | `src/collectors/loadavg.cpp` | parse results are not checked; silent zeroing on failure | 0.5h |
 
-Fix for B2: delete `get_uptime()`, keep `time_awake()` (correct implementation),
-remove duplicate/unused includes (`<stdexcept>` ×2, `<iostream>` ×2, `<chrono>`,
-`<thread>`, `<utility>`, `<cmath>`).
+The real project-state gap is not just the original five bugs; it also includes
+basic build hygiene and a one-off test harness that currently blocks the normal build.
 
-## 3. Architecture: the sampler is built but never wired in
+## 3. Architecture assessment
 
-Current request path:
-browser → http_server → `get_metrics_json()` → `get_cpu_usage()` →
-**sleeps 1 second per request**, on a single-threaded accept loop.
-Every `/metrics` request stalls ≥1s and blocks all other clients.
+The original architecture assessment is broadly correct, but it is still optimistic.
+The codebase is not yet in the state where the sampler can be safely wired into the
+server without a build and warnings pass first.
 
-Meanwhile `MetricsSampler` (well-written: atomic stop flag, mutex-guarded
-snapshot, delta-based CPU with no sleeping, exception-safe loop) is never
-instantiated anywhere.
+Current state:
+- `MetricsSampler` exists, but it is not integrated into runtime server flow.
+- `main.cpp` still calls the collectors directly in `--watch` mode and serves via
+  a blocking request loop.
+- `/metrics` generation in `get_metrics_json()` is synchronous and not snapshot-based.
+- The server is single-threaded and blocks on a single accept cycle.
 
-Target architecture:
-- `main.cpp`: construct + start `MetricsSampler`; pass it to `run_server`
-- `http_server.cpp`: `/metrics` serves `sampler.latest()` — non-blocking
-- `getjson.cpp`: becomes a pure snapshot→JSON serializer
-  (must handle `cpu_percent == nullopt` on the first sample)
-- delete `include/metrics.hpp` (dead file; duplicates `getjson.h` + `cpu.h`)
-- rename JSON key `"awake"` → `"uptime_seconds"` (matches the snapshot field;
-  drop the frontend `??` fallback)
-- `--watch` CLI mode keeps direct collector calls (blocking is fine there)
+Target architecture still makes sense:
+- `main.cpp`: create/start `MetricsSampler`, pass it to the HTTP server.
+- `http_server.cpp`: `GET /metrics` serves `sampler.latest()` instead of recomputing values per request.
+- `getjson.cpp`: becomes a serializer for a snapshot (and must handle the first sample where CPU is unset).
+- `--watch` keeps direct collector behavior for CLI output.
 
-## 4. Punch list
+## 4. Revised punch list
 
-### P1 — architecture + robustness
-| #  | Item                                                                                     | File(s)                                              | Est       |
-|----|------------------------------------------------------------------------------------------|------------------------------------------------------|-----------|
-| A1 | Wire sampler into server (see §3)                                                        | main.cpp, http_server.{h,cpp}, getjson.cpp, delete metrics.hpp | 3.5–4.5h |
-| A2 | `stop()` blocks up to `interval_` (`sleep_for` in loop); use condition_variable so stop is prompt | metrics_sampler.{h,cpp}                     | 1h        |
-| A3 | `loadavg.cpp`: check `fscanf` returns (currently silently returns zeros on parse failure) | loadavg.cpp                                          | 0.5h      |
-| A4 | Document the error policy: collectors may throw; sampler catches, logs, keeps last snapshot (already implemented — just comment it) | —    | 0.25h     |
+### P1 — build stabilization + robustness
+| #  | Item                                                                 | File(s) | Est |
+|----|-----------------------------------------------------------------------|---------|-----|
+| A0 | Fix duplicate `main` problem from the sampler test harness | `src/collectors/sampler_test.cpp`, build config | 0.5h |
+| A1 | Wire sampler into server and remove per-request collector calls | `src/main.cpp`, `src/server/http_server.{h,cpp}`, `src/utils/getjson.cpp` | 4–5h |
+| A2 | Make `stop()` prompt and safe under a worker loop (`condition_variable` or equivalent) | `src/collectors/metrics_sampler.{h,cpp}` | 1–1.5h |
+| A3 | Check `fscanf` return values in `/proc` collectors | `src/collectors/{mem,loadavg,uptime}.cpp` | 1h |
+| A4 | Document the error policy: collectors throw; sampler catches/logs and keeps last snapshot | relevant collector/sampler comments | 0.25h |
 
 ### P2 — frontend honesty
-| #  | Item                                                                 | File(s)            | Est       |
-|----|----------------------------------------------------------------------|--------------------|-----------|
-| F1 | Remove mock-data fallback; show visible "backend unreachable / stale" state | app.js, index.html | 1.5–2h |
-| F2 | Relative API URL: `fetch("/metrics")` instead of hardcoded `http://localhost:8080` | app.js       | 0.25h     |
-| F3 | `uptime_seconds` rename (lands with A1)                              | app.js             | (in A1)   |
-| F4 | Optional: storage card — backend already sends `filesystems[]`, UI ignores it | index.html, app.js | 1h (optional) |
+| #  | Item | File(s) | Est |
+|----|-------|---------|-----|
+| F1 | Remove mock-data fallback; show a visible stale/unreachable state | `frontend/app.js`, `frontend/index.html` | 1.5–2h |
+| F2 | Switch to relative fetch URL (`/metrics`) | `frontend/app.js` | 0.25h |
+| F3 | Rename `awake` to `uptime_seconds` and align frontend labels | `frontend/app.js`, `src/utils/getjson.cpp` | 0.5h |
+| F4 | Optional: add storage card for `filesystems[]` | `frontend/index.html`, `frontend/app.js` | 1h |
 
-### P3 — server features (optional, recommended for the QEMU demo)
-| #  | Item                                                                  | File(s)          | Est          |
-|----|-----------------------------------------------------------------------|------------------|--------------|
-| S1 | Serve static frontend (index.html/app.js/styles.css) from the same binary → one-command demo on target | http_server.cpp | 2–3h |
-| S2 | Port from argv (`--port`), keep 8080 default                          | main.cpp         | 0.25h        |
+### P3 — server features (optional)
+| #  | Item | File(s) | Est |
+|----|-------|---------|-----|
+| S1 | Serve frontend assets from the same binary | `src/server/http_server.cpp` | 2–3h |
+| S2 | Accept `--port` and default to 8080 | `src/main.cpp` | 0.25h |
 
 ### P4 — polish / verification
-| #  | Item                                                                                                   | File(s)              | Est       |
-|----|--------------------------------------------------------------------------------------------------------|----------------------|-----------|
-| V1 | Zero-warning pass: add `-Wpedantic -Wshadow` to the existing `-Wall -Wextra` and fix everything        | Makefile + all sources | 1h       |
-| V2 | Sanitizer pass: build + run with `-fsanitize=address,undefined`; fix all reports (exercises /proc parsers + threads + server) | Makefile target + fixes | 2–3h |
-| V3 | README rewrite (references nonexistent `src/metrics.cpp`, calls uptime "someday", omits server/frontend/sampler) + `.gitignore` cleanup (drop `main`, `a.out`) | README.md, .gitignore | 1–2h |
+| #  | Item | File(s) | Est |
+|----|-------|---------|-----|
+| V1 | Warning pass with `-Wpedantic -Wshadow`; fix all warnings | `Makefile`, all sources | 1–2h |
+| V2 | ASan/UBSan validation pass | `Makefile`, all sources | 2.5–4h |
+| V3 | README and ignore cleanup | `README.md`, `.gitignore` | 1–2h |
 
-## 5. Totals
+## 5. Revised totals
 
-| Scope                                    | Hours        |
-|------------------------------------------|--------------|
-| P0 bugs (B1–B5)                          | 1.2–1.5h     |
-| P1 architecture + robustness (A1–A4)     | 5.25–6.25h   |
-| P2 frontend (F1–F3)                      | 1.75–2.25h   |
-| P4 polish/verification (V1–V3)           | 4–6h         |
-| **Core total**                           | **~12–16h**  |
-| Optional: F4 storage card                | +1h          |
-| Optional: S1+S2 static serving + port    | +2.25–3.25h  |
-| **Everything**                           | **~15–20h**  |
+| Scope | Hours |
+|-------|-------|
+| P0 bugs (B0–B6) | 2.25–3.25h |
+| P1 architecture + robustness (A0–A4) | 6.75–8.25h |
+| P2 frontend (F1–F3) | 2.5–3.75h |
+| P4 polish/verification (V1–V3) | 4.5–8h |
+| **Core total** | **~16–23h** |
+| Optional: F4 storage card | +1h |
+| Optional: S1+S2 static serving + port | +2.5–3.5h |
+| **Everything** | **~19–27h** |
 
-Calendar: full-time ≈ 2–3 days; part-time (~10h/wk) ≈ 2 weeks.
+That is still within the general range described in the original estimate, but it is
+now more realistic for the current state of the repo. The main difference is that
+there is a real build-blocker and several robustness gaps before the architecture work
+can be considered cleanly implementable.
 
-## 6. Execution order
+## 6. Revised execution order
 
-1. B1–B5 — small, independent, do first
-2. V1 warnings pass — let the compiler find more before touching architecture
+1. B0–B6 — eliminate blockers and obvious UB paths first
+2. V1 warnings pass — compiler feedback will reveal additional cleanup
 3. A1 sampler wiring + F3 rename — one coherent change
-4. A2, A3, A4
-5. V2 sanitizers — validate the new architecture under ASan/UBSan
-6. F1, F2 (+F4 if desired)
+4. A2, A4
+5. V2 sanitizers — verify thread and `/proc` behavior under ASan/UBSan
+6. F1, F2, F4 if desired
 7. S1, S2 (optional)
-8. V3 README last, so it describes the final state
+8. V3 README and ignore cleanup last
 
 ## 7. Notes
 
-- After step 5 the codebase is Buildroot-ready: the Makefile already supports
-  `CROSS_COMPILE=`, `STATIC=1`, and an `install` target; `-pthread` is set
-  (the flag that matters on musl/uClibc).
-- Check the `json.hpp` version in its header comment before cross-compiling —
-  older vendored versions had C++17 corner-case issues.
-- No tests exist; the sanitizer pass is the substitute for now. Unit tests for
-  the `/proc` parsers remain the top post-MVP item.
+- The project is not yet in a stable build state; the duplicate `main` in the test file
+  is a real regression blocker and should be treated as such.
+- The original estimate was directionally sound but undercounted the amount of clean-up
+  required before architecture work becomes safe.
+- After the warnings/sanitizer passes, the repo should be much closer to Buildroot-ready,
+  but only after the test harness and the currently blocking runtime assumptions are fixed.
