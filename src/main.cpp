@@ -1,6 +1,6 @@
 #include <iostream>
 #include <unistd.h>
-
+#include <cstring>
 
 #include "collectors/cpu.h"
 #include "collectors/mem.h"
