@@ -1,70 +1,59 @@
 # Partially AI generated because who has time for this? Not me
-# Name of the final executable that will be created
 TARGET_EXEC := sysmon
-
-# Folder where compiled object files and executable will go
 BUILD_DIR := ./build
-
-# Folder containing source code (.cpp files)
 SRC_DIRS := ./src
 
-# Compiler preprocessor flags:
-# -Iinclude  -> look in include/ for header files
-# -Iexternal -> look in external/ for header files
-# -MMD -MP   -> automatically generate dependency (.d) files
-CPPFLAGS := -Iinclude -Iexternal -MMD -MP 
-
-# Find all .cpp source files inside src/
-SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
-
-# Convert source file names into object file names inside build/
-#
-# Example:
-# src/main.cpp
-# becomes:
-# build/src/main.cpp.o
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
-
-# Convert object file names into dependency file names
-#
-# Example:
-# build/src/main.cpp.o
-# becomes:
-# build/src/main.cpp.d
-DEPS := $(OBJS:.o=.d)
-
+CPPFLAGS := -Iinclude -Iexternal -MMD -MP
 
 CXX := g++
 CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow
+CXXFLAGS += -pthread
+LDFLAGS += -pthread
 
-# Final linking step to combine into one executable
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
+# Production application sources and objects.
+APP_SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
+APP_OBJS := $(APP_SRCS:%=$(BUILD_DIR)/%.o)
+APP_DEPS := $(APP_OBJS:.o=.d)
+
+# Sampler test: explicitly list only what it needs.
+TEST_EXEC := $(BUILD_DIR)/sampler_test
+TEST_SRCS := \
+	tests/sampler_test.cpp \
+	src/collectors/metrics_sampler.cpp \
+	src/collectors/cpu.cpp \
+	src/collectors/mem.cpp \
+	src/collectors/uptime.cpp \
+	src/collectors/loadavg.cpp \
+	src/collectors/storage.cpp \
+	src/utils/math_utils.cpp
+
+TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/%.o)
+TEST_DEPS := $(TEST_OBJS:.o=.d)
+
+.PHONY: clean run test
+
+# Production executable.
+$(BUILD_DIR)/$(TARGET_EXEC): $(APP_OBJS)
 	mkdir -p $(dir $@)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+	$(CXX) $(APP_OBJS) -o $@ $(LDFLAGS)
 
-# Rule for compiling any .cpp file into a .o object file
-#
-# $< = input file
-# $@ = output file
+# Test executable.
+$(TEST_EXEC): $(TEST_OBJS)
+	mkdir -p $(dir $@)
+	$(CXX) $(TEST_OBJS) -o $@ $(LDFLAGS)
+
+# Compile any source into its matching build-directory object.
 $(BUILD_DIR)/%.cpp.o: %.cpp
-	
 	mkdir -p $(dir $@)
-
-	
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-# "clean" is not a real file target
-.PHONY: clean
+run: $(BUILD_DIR)/$(TARGET_EXEC)
+	$(BUILD_DIR)/$(TARGET_EXEC)
 
-# Remove all generated build files
+test: $(TEST_EXEC)
+	$(TEST_EXEC)
+
 clean:
 	rm -rf $(BUILD_DIR)
 
-# make run to run it
-run: $(BUILD_DIR)/$(TARGET_EXEC)
-	$(BUILD_DIR)/$(TARGET_EXEC)
-# Include automatically generated dependency files
-#
-# This allows Make to rebuild files when included headers change.
-# The "-" suppresses errors if the .d files do not exist yet.
--include $(DEPS)
+-include $(APP_DEPS) $(TEST_DEPS)
