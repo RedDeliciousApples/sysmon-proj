@@ -11,8 +11,9 @@
 #include <cstring>
 
 #include "../utils/getjson.h"
+#include "../collectors/metrics_sampler.h"
 
-void run_server(int port)
+void run_server(int port, MetricsSampler& sampler)
 {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -72,7 +73,14 @@ void run_server(int port)
 
         if (method == "GET" && path == "/metrics") {
             try {
-                nlohmann::json j = get_metrics_json();
+                nlohmann::json j;
+                const auto snapshot = sampler.latest();
+
+                if (!snapshot) {
+                    // Return 503
+                } else {
+                   j = get_metrics_json_mine(*snapshot);
+                }
                 std::string body = j.dump();
 
                 std::ostringstream resp;

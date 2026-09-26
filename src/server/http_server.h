@@ -1,3 +1,3 @@
 #pragma once
-
-void run_server(int port);
+#include "../collectors/metrics_sampler.h"
+void run_server(int port, MetricsSampler& sampler);

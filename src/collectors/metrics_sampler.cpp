@@ -34,7 +34,7 @@ std::optional<MetricsSnapshot> MetricsSampler::latest() const
 }
 MetricsSnapshot MetricsSampler::collect_once()
 {
-    MetricsSnapshot snapshot;
+    MetricsSnapshot snapshot{};
     snapshot.collected_at_unix_seconds = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     
@@ -59,20 +59,20 @@ void MetricsSampler::start()
 {
     if (worker_.joinable()) return;
     
-    stopping_ = false;
+    stopping_.store(false);
     worker_ = std::thread(&MetricsSampler::run, this);
 }
 
 void MetricsSampler::run()
 {
-    while (!stopping_)
+    while (!stopping_.load())
     {
         try {
             MetricsSnapshot snapshot = collect_once();
 
             {
                 std::lock_guard<std::mutex> lock(snapshot_mutex_);
-                latest_snapshot_ = snapshot;
+                latest_snapshot_ = std::move(snapshot);
             }
         }
         catch (const std::exception& e) {
@@ -94,7 +94,7 @@ void MetricsSampler::run()
 
 void MetricsSampler::stop()
 {
-    stopping_ = true;
+    stopping_.store(true);
 
     stop_cv_.notify_all();
 

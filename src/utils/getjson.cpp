@@ -1,45 +1,28 @@
 #include "json.hpp"
-#include "../collectors/cpu.h"
-#include "../collectors/mem.h"
-#include "../collectors/uptime.h"
-#include "../collectors/loadavg.h"
-#include "../collectors/storage.h"
+#include "../collectors/metrics_snapshot.h"
 
-
-nlohmann::json get_metrics_json()
+nlohmann::json get_metrics_json_mine(const MetricsSnapshot& snapshot)
 {
-    nlohmann::json j;
+    nlohmann::json json;
 
-    j["cpu"] = get_cpu_usage();
-    j["mem"] = get_mem_usage();
-    j["awake"] = time_awake();
-    LoadAverage load = get_load_avg();
-
-    j["loadavg"] = {
-        {"1min", load.one_min},
-        {"5min", load.five_min},
-        {"15min", load.fifteen_min}
-    };
-
-    std::vector<FilesystemUsage> storage_usage = get_filesystem_usage();
-
-    nlohmann::json storage_array = nlohmann::json::array();
-
-    for (const auto& fs : storage_usage) {
-        storage_array.push_back({
-            {"mount_point", fs.mount_point},
-            {"fs_type", fs.fs_type},
-            {"total_bytes", fs.total_bytes},
-            {"free_bytes", fs.free_bytes},
-            {"available_bytes", fs.available_bytes},
-            {"used_percent", static_cast<double>(fs.used_percent)}
-        });
+    if (snapshot.cpu_percent) {
+        json["cpu_percent"] = *snapshot.cpu_percent;
+    } else {
+        json["cpu_percent"] = nullptr;
     }
 
-    j["storage"] = {
-        {"filesystems", storage_array}
+    json["memory_used_percent"] = snapshot.memory_used_percent;
+    json["uptime_seconds"] = snapshot.uptime_seconds;
+    json["collected_at_unix_seconds"] =
+        snapshot.collected_at_unix_seconds;
+    json["sequence"] = snapshot.sequence;
+
+    json["load_average"] = {
+        {"one_min", snapshot.load_average.one_min},
+        {"five_min", snapshot.load_average.five_min},
+        {"fifteen_min", snapshot.load_average.fifteen_min}
     };
 
     
-    return j;
+    return json;
 }

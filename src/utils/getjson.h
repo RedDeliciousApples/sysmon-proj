@@ -1,3 +1,4 @@
 #pragma once
 #include "json.hpp"
-nlohmann::json get_metrics_json();
+#include "../collectors/metrics_snapshot.h"
+nlohmann::json get_metrics_json_mine(const MetricsSnapshot& snapshot);

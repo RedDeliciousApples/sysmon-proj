@@ -9,6 +9,7 @@
 #include "utils/getjson.h"
 #include "json.hpp"
 #include "server/http_server.h"
+#include "collectors/metrics_sampler.h"
 
 int main(int argc, char** argv)
 {
@@ -21,8 +22,10 @@ int main(int argc, char** argv)
     }
 
     if (serving) {
-        // start HTTP server on default port 8080
-        run_server(8080);
+        MetricsSampler sampler(std::chrono::seconds(1));
+        sampler.start();
+
+        run_server(8080, sampler);
         return 0;
     }
 
@@ -39,7 +42,7 @@ int main(int argc, char** argv)
                 << "%\n";
             std::cout << "uptime in seconds:" << time_awake() << " seconds \n";
             std::cout << "\nJSON:\n";
-            std::cout << get_metrics_json().dump(4) << '\n';
+            std::cout << get_metrics_json_mine(MetricsSnapshot()).dump(4) << '\n';
             sleep(1);                
         }
     }
@@ -52,7 +55,7 @@ int main(int argc, char** argv)
               << "%\n";
     std::cout << "uptime in seconds:" << time_awake() << " seconds \n";
     std::cout << "\nJSON:\n";
-    std::cout << get_metrics_json().dump(4) << '\n';
+    std::cout << get_metrics_json_mine(MetricsSnapshot()).dump(4) << '\n';
 
     return 0;
 }
