@@ -77,22 +77,31 @@ void run_server(int port, MetricsSampler& sampler)
                 const auto snapshot = sampler.latest();
 
                 if (!snapshot) {
-                    // Return 503
+                    const std::string body = "{\"error\":\"Metrics unavailable\"}";
+                    std::ostringstream resp;
+                    resp << "HTTP/1.1 503 Service Unavailable\r\n";
+                    resp << "Content-Type: application/json\r\n";
+                    resp << "Content-Length: " << body.size() << "\r\n";
+                    resp << "Connection: close\r\n";
+                    resp << "\r\n";
+                    resp << body;
+                    const std::string out = resp.str();
+                    send(client_fd, out.c_str(), out.size(), 0);
                 } else {
-                   j = get_metrics_json_mine(*snapshot);
+                    j = get_metrics_json_mine(*snapshot);
+                    std::string body = j.dump();
+
+                    std::ostringstream resp;
+                    resp << "HTTP/1.1 200 OK\r\n";
+                    resp << "Content-Type: application/json\r\n";
+                    resp << "Content-Length: " << body.size() << "\r\n";
+                    resp << "Connection: close\r\n";
+                    resp << "\r\n";
+                    resp << body;
+
+                    std::string out = resp.str();
+                    send(client_fd, out.c_str(), out.size(), 0);
                 }
-                std::string body = j.dump();
-
-                std::ostringstream resp;
-                resp << "HTTP/1.1 200 OK\r\n";
-                resp << "Content-Type: application/json\r\n";
-                resp << "Content-Length: " << body.size() << "\r\n";
-                resp << "Connection: close\r\n";
-                resp << "\r\n";
-                resp << body;
-
-                std::string out = resp.str();
-                send(client_fd, out.c_str(), out.size(), 0);
             } catch (const std::exception &e) {
                 const std::string body = std::string("{\"error\":\"") + e.what() + "\"}";
                 std::ostringstream resp;
