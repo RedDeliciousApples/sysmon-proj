@@ -4,6 +4,8 @@ function formatUptime(seconds) {
   return `${hours}h ${minutes}m`;
 }
 
+const REQUEST_TIMEOUT_MS = 3000;
+
 function setStatus(message, stale) {
   const status = document.getElementById("status");
   status.textContent = message;
@@ -22,8 +24,11 @@ function renderMetrics(metrics) {
 }
 
 async function fetchMetricsOnce() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
-    const res = await fetch("/metrics");
+    const res = await fetch("/metrics", { signal: controller.signal });
     if (res.status === 503) {
       setStatus("Collecting first sample…", true);
       return;
@@ -35,6 +40,8 @@ async function fetchMetricsOnce() {
   } catch (err) {
     console.warn("Failed to fetch metrics:", err);
     setStatus("Backend unavailable", true);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
