@@ -18,6 +18,39 @@
 
 namespace {
 volatile std::sig_atomic_t shutdown_requested = 0;
+
+bool send_all(int client_fd, const std::string& response)
+{
+    std::size_t total_sent = 0;
+    while (total_sent < response.size()) {
+        const ssize_t sent = send(
+            client_fd,
+            response.data() + total_sent,
+            response.size() - total_sent,
+            MSG_NOSIGNAL);
+
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return false;
+        }
+
+        if (sent == 0) {
+            errno = EPIPE;
+            return false;
+        }
+
+        total_sent += static_cast<std::size_t>(sent);
+    }
+
+    return true;
+}
+
+void log_send_error()
+{
+    std::cerr << "Failed to send response: " << std::strerror(errno) << '\n';
+}
 }
 
 void request_server_shutdown()
@@ -115,7 +148,9 @@ void run_server(int port, MetricsSampler& sampler)
                     resp << "\r\n";
                     resp << body;
                     const std::string out = resp.str();
-                    send(client_fd, out.c_str(), out.size(), 0);
+                    if (!send_all(client_fd, out)) {
+                        log_send_error();
+                    }
                 } else {
                     j = get_metrics_json_mine(*snapshot);
                     std::string body = j.dump();
@@ -129,7 +164,9 @@ void run_server(int port, MetricsSampler& sampler)
                     resp << body;
 
                     std::string out = resp.str();
-                    send(client_fd, out.c_str(), out.size(), 0);
+                    if (!send_all(client_fd, out)) {
+                        log_send_error();
+                    }
                 }
             } catch (const std::exception &e) {
                 const std::string body = std::string("{\"error\":\"") + e.what() + "\"}";
@@ -141,7 +178,9 @@ void run_server(int port, MetricsSampler& sampler)
                 resp << "\r\n";
                 resp << body;
                 std::string out = resp.str();
-                send(client_fd, out.c_str(), out.size(), 0);
+                if (!send_all(client_fd, out)) {
+                    log_send_error();
+                }
             }
         } else {
             const std::string body = "Not Found";
@@ -153,7 +192,9 @@ void run_server(int port, MetricsSampler& sampler)
             resp << "\r\n";
             resp << body;
             std::string out = resp.str();
-            send(client_fd, out.c_str(), out.size(), 0);
+            if (!send_all(client_fd, out)) {
+                log_send_error();
+            }
         }
 
         close(client_fd);
