@@ -12,14 +12,26 @@ function setStatus(message, stale) {
   status.classList.toggle("stale", stale);
 }
 
+function formatMetric(value, suffix = "") {
+  return value == null ? "--" : `${value}${suffix}`;
+}
+
 function renderMetrics(metrics) {
-  document.getElementById("cpu").textContent = `${metrics.cpu}%`;
-  document.getElementById("mem").textContent = `${metrics.mem}%`;
+  if (!metrics || typeof metrics !== "object") {
+    throw new Error("Invalid metrics response");
+  }
+
+  document.getElementById("cpu").textContent = formatMetric(metrics.cpu, "%");
+  document.getElementById("mem").textContent = formatMetric(metrics.mem, "%");
   // server returns `awake` (seconds), fallback keeps compatibility
-  const seconds = metrics.awake ?? metrics.uptime_seconds ?? 0;
-  document.getElementById("uptime").textContent = formatUptime(seconds);
-  document.getElementById("loadavg").textContent =
-    `${metrics.loadavg["1min"]} / ${metrics.loadavg["5min"]} / ${metrics.loadavg["15min"]}`;
+  const seconds = metrics.awake ?? metrics.uptime_seconds;
+  document.getElementById("uptime").textContent =
+    seconds == null ? "--" : formatUptime(seconds);
+
+  const loadavg = metrics.loadavg;
+  document.getElementById("loadavg").textContent = loadavg
+    ? formatMetric(loadavg["1min"]) + " / " + formatMetric(loadavg["5min"]) + " / " + formatMetric(loadavg["15min"])
+    : "--";
   setStatus("Backend connected", false);
 }
 
