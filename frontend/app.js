@@ -24,6 +24,10 @@ function renderMetrics(metrics) {
 async function fetchMetricsOnce() {
   try {
     const res = await fetch("/metrics");
+    if (res.status === 503) {
+      setStatus("Collecting first sample…", true);
+      return;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     renderMetrics(json);
