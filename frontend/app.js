@@ -21,16 +21,15 @@ function renderMetrics(metrics) {
     throw new Error("Invalid metrics response");
   }
 
-  document.getElementById("cpu").textContent = formatMetric(metrics.cpu, "%");
-  document.getElementById("mem").textContent = formatMetric(metrics.mem, "%");
-  // server returns `awake` (seconds), fallback keeps compatibility
-  const seconds = metrics.awake ?? metrics.uptime_seconds;
+  document.getElementById("cpu").textContent = formatMetric(metrics.cpu_percent, "%");
+  document.getElementById("mem").textContent = formatMetric(metrics.memory_used_percent, "%");
+  const seconds = metrics.uptime_seconds;
   document.getElementById("uptime").textContent =
     seconds == null ? "--" : formatUptime(seconds);
 
-  const loadavg = metrics.loadavg;
+  const loadavg = metrics.load_average;
   document.getElementById("loadavg").textContent = loadavg
-    ? formatMetric(loadavg["1min"]) + " / " + formatMetric(loadavg["5min"]) + " / " + formatMetric(loadavg["15min"])
+    ? formatMetric(loadavg.one_min) + " / " + formatMetric(loadavg.five_min) + " / " + formatMetric(loadavg.fifteen_min)
     : "--";
   setStatus("Backend connected", false);
 }
