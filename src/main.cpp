@@ -12,7 +12,7 @@
 #include "server/http_server.h"
 #include "collectors/metrics_sampler.h"
 
-void handle_sigint(int)
+void handle_shutdown_signal(int)
 {
     request_server_shutdown();
 }
@@ -28,7 +28,8 @@ int main(int argc, char** argv)
     }
 
     if (serving) {
-        std::signal(SIGINT, handle_sigint);
+        std::signal(SIGINT, handle_shutdown_signal);
+        std::signal(SIGTERM, handle_shutdown_signal);
         MetricsSampler sampler(std::chrono::seconds(1));
         sampler.start();
 

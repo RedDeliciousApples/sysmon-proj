@@ -1,8 +1,9 @@
-/*recv() still blocks indefinitely on one accepted client; add a per-client receive timeout or poll it before reading.
-The 500 response directly concatenates e.what() into JSON, which can produce invalid JSON if the message contains quotes.
-The server binds to all interfaces (INADDR_ANY) but logs a localhost URL; clarify the intended bind/access behavior.*/
+/*
+The server binds to all interfaces (INADDR_ANY) but logs a localhost URL; clarify the intended bind/access behavior.
+*/
 #include "http_server.h"
 
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -120,6 +121,17 @@ void run_server(int port, MetricsSampler& sampler)
             continue;
         }
 
+        // handles timeouts of clients so a client sending nothing wont freeze server. (2s)
+        timeval receive_timeout{};
+        receive_timeout.tv_sec = 2;
+
+        if (setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout)) < 0)
+        {
+            std::cerr << "Failed to set client receive timeout\n";
+            close(client_fd);
+            continue;
+        }
+
         // read request (simple, single recv is sufficient for our small requests)
         char buffer[4096];
         ssize_t received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
@@ -172,7 +184,9 @@ void run_server(int port, MetricsSampler& sampler)
                     }
                 }
             } catch (const std::exception &e) {
-                const std::string body = std::string("{\"error\":\"") + e.what() + "\"}";
+                nlohmann::json error_json;
+                error_json["error"] = e.what();
+                const std::string body = error_json.dump();
                 std::ostringstream resp;
                 resp << "HTTP/1.1 500 Internal Server Error\r\n";
                 resp << "Content-Type: application/json\r\n";
