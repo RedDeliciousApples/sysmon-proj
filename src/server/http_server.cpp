@@ -2,16 +2,28 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
 #include <cstring>
+#include <csignal>
 
 #include "../utils/getjson.h"
 #include "../collectors/metrics_sampler.h"
+
+namespace {
+volatile std::sig_atomic_t shutdown_requested = 0;
+}
+
+void request_server_shutdown()
+{
+    shutdown_requested = 1;
+}
 
 void run_server(int port, MetricsSampler& sampler)
 {
@@ -44,8 +56,25 @@ void run_server(int port, MetricsSampler& sampler)
 
     std::cout << "sysmon server listening on http://localhost:" << port << "\n";
 
-    while (true) {
+    while (!shutdown_requested) {
         //REVIEW. appears to work but needs more testing, and multiconnection support
+        pollfd server_poll{};
+        server_poll.fd = server_fd;
+        server_poll.events = POLLIN;
+        const int poll_result = poll(&server_poll, 1, 250);
+
+        if (poll_result < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            close(server_fd);
+            throw std::runtime_error("Failed to poll listening socket");
+        }
+
+        if (poll_result == 0 || !(server_poll.revents & POLLIN)) {
+            continue;
+        }
+
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
         int client_fd = accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
@@ -130,5 +159,6 @@ void run_server(int port, MetricsSampler& sampler)
         close(client_fd);
     }
 
+    std::cout << "Shutting down sysmon server\n";
     close(server_fd);
 }

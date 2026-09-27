@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
+#include <csignal>
 
 #include "collectors/cpu.h"
 #include "collectors/mem.h"
@@ -10,6 +11,11 @@
 #include "json.hpp"
 #include "server/http_server.h"
 #include "collectors/metrics_sampler.h"
+
+void handle_sigint(int)
+{
+    request_server_shutdown();
+}
 
 int main(int argc, char** argv)
 {
@@ -22,6 +28,7 @@ int main(int argc, char** argv)
     }
 
     if (serving) {
+        std::signal(SIGINT, handle_sigint);
         MetricsSampler sampler(std::chrono::seconds(1));
         sampler.start();
 
