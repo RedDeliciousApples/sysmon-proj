@@ -1,3 +1,6 @@
+/*recv() still blocks indefinitely on one accepted client; add a per-client receive timeout or poll it before reading.
+The 500 response directly concatenates e.what() into JSON, which can produce invalid JSON if the message contains quotes.
+The server binds to all interfaces (INADDR_ANY) but logs a localhost URL; clarify the intended bind/access behavior.*/
 #include "http_server.h"
 
 #include <arpa/inet.h>
