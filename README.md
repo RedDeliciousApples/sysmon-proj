@@ -60,7 +60,24 @@ Use a server (we used python `http.server`) to serve the `frontend` folder, then
 
 ## Embedded (Buildroot)
 
-There's an external Buildroot tree in `buildroot/`. It cross-compiles sysmon so it can run on a small embedded Linux image. In the future this will probably run on QEMU first, then maybe an ARM core.
+There's an external Buildroot tree in `buildroot/`. It cross-compiles sysmon so it can run on a small embedded Linux image. To build and run:
+
+```bash
+cd ~/buildroot
+make BR2_EXTERNAL="$HOME/sysmon-proj/buildroot" sysmon_qemu_defconfig
+make BR2_EXTERNAL="$HOME/sysmon-proj/buildroot" -j"$(nproc)"
+```
+
+```bash
+~/sysmon-proj/scripts/run-qemu.sh
+```
+
+Then once you're in QEMU (the login is just "root", no pasword):
+
+```bash
+/usr/bin/sysmon --serve &
+wget -qO- http://127.0.0.1:8080/metrics
+```
 
 Eventually we'll add cloud upload, TLS, and running on real hardware. The tests need rewrites too. 
 
