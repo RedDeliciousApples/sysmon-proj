@@ -1,4 +1,3 @@
-# Partially AI generated because who has time for this? Not me
 TARGET_EXEC := sysmon
 BUILD_DIR := ./build
 SRC_DIRS := ./src
@@ -10,12 +9,12 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow
 CXXFLAGS += -pthread
 LDFLAGS += -pthread
 
-# Production application sources and objects.
+
 APP_SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
 APP_OBJS := $(APP_SRCS:%=$(BUILD_DIR)/%.o)
 APP_DEPS := $(APP_OBJS:.o=.d)
 
-# Sampler test: explicitly list only what it needs.
+
 TEST_EXEC := $(BUILD_DIR)/sampler_test
 TEST_SRCS := \
 	tests/sampler_test.cpp \
@@ -32,17 +31,17 @@ TEST_DEPS := $(TEST_OBJS:.o=.d)
 
 .PHONY: clean run test
 
-# Production executable.
+
 $(BUILD_DIR)/$(TARGET_EXEC): $(APP_OBJS)
 	mkdir -p $(dir $@)
 	$(CXX) $(APP_OBJS) -o $@ $(LDFLAGS)
 
-# Test executable.
+
 $(TEST_EXEC): $(TEST_OBJS)
 	mkdir -p $(dir $@)
 	$(CXX) $(TEST_OBJS) -o $@ $(LDFLAGS)
 
-# Compile any source into its matching build-directory object.
+
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
