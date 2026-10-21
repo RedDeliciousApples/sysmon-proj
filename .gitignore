@@ -10,3 +10,20 @@ a.out
 
 # macOS
 .DS_Store
+# Yocto / EDF build output
+tmp/
+tmp-*/
+sstate-cache/
+downloads/
+cache/
+bitbake-cookerdaemon.log
+bitbake.lock
+pyshtables.py
+__pycache__/
+*.wic
+*.wic.*
+*.img
+
+# Hardware files extracted from the XSA by yocto/scripts/extract-xsa.sh
+yocto/meta-pynq-z1/sdt/zynq-pynq-z1-sdt/*.bit
+yocto/meta-pynq-z1/sdt/zynq-pynq-z1-sdt/ps7_init*
