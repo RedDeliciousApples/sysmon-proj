@@ -1,0 +1,12 @@
+[Unit]
+Description=Sysmon HTTP metrics service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/sysmon --serve
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
